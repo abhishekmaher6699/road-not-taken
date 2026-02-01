@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  places        Place[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+
+enum Category {
+  STREET_ART
+  BUILDING
+  RUIN
+}
+
+enum Status {
+  ACTIVE
+  DESTROYED
+}
+
+model Place {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  category  Category 
+  isActive  Status @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  preview   PlacePreview?
+  details   PlaceDetails?
+
+  images    PlaceImage[]
+
+  @@index([createdById])
+  @@map("place")
+}
+
+model PlacePreview {
+  placeId    String   @id
+  place      Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  latitude   Float
+  longitude  Float
+
+  thumbnail  String  
+
+  @@index([latitude, longitude])
+  @@map("place_preview")
+}
+
+model PlaceDetails {
+  placeId     String   @id
+  place       Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  description String?
+
+  createdAt   DateTime @default(now())
+
+  @@map("place_details")
+}
+
+model PlaceImage {
+  id        String   @id @default(cuid())
+  placeId  String
+  place    Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  url       String
+  order     Int      @default(0)
+
+  @@index([placeId])
+  @@map("place_image")
+}
