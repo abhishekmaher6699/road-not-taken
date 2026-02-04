@@ -1,3 +1,5 @@
+"use client";
+
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -27,34 +29,13 @@ import { useEffect, useState } from "react";
 import { uploadToCloudinary } from "@/lib/cloudinary-uploads";
 import { getThumbnailUrl } from "@/lib/cloudinary";
 
+import { addPinSchema } from "@/lib/schemas";
+import { is } from "zod/v4/locales";
+
 type Latlang = {
   lat: number;
   lng: number;
 };
-
-const addPinSchema = z.object({
-  title: z
-    .string()
-    .min(3, "Title must be at least 3 characters")
-    .max(30, "Title must be at most 30 characters"),
-  description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(500, "Description must be at most 500 characters"),
-  address: z
-    .string()
-    .min(5, "Address must be at least 5 characters")
-    .max(100, "Address must be at most 100 characters"),
-  latitude: z.number(),
-  longitude: z.number(),
-  isActive: z.enum(Status),
-  category: z.enum(Category),
-  images: z
-    .array(z.string())
-    .max(10, "You can upload up to 10 images")
-    .min(1, "Please upload at least one image"),
-  thumbnail: z.string().min(1, "Please select a thumbnail image"),
-});
 
 export type PinValues = z.infer<typeof addPinSchema>;
 
@@ -66,6 +47,8 @@ const AddPinForm = ({
   onCancel: () => void;
 }) => {
   const [fileKey, setFileKey] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(addPinSchema),
@@ -99,9 +82,32 @@ const AddPinForm = ({
     resetForm();
   };
 
-  const SubmitHandler = (data: PinValues) => {
-    console.log("Form submitted:", data);
-    resetForm();
+  const SubmitHandler = async (data: PinValues) => {
+
+    setIsSubmitting(true);
+    try {
+      const place = await fetch("/api/place", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!place.ok) {
+        const err = await place.json();
+        throw new Error(err.error || "Failed to create place");
+      }
+
+      const res = await place.json();
+      console.log("Saved place", res);
+      resetForm();
+    } catch (error) {
+      console.log(error);
+      alert("failed to save location");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const images = form.watch("images");
@@ -262,26 +268,38 @@ const AddPinForm = ({
                     type="file"
                     accept="image/*"
                     multiple
+                    disabled={isUploading}
                     onChange={async (e) => {
                       const files = Array.from(e.target.files ?? []);
                       if (!files.length) return;
 
-                      const uploadedUrls: string[] = [];
+                      setIsUploading(true);
 
-                      for (const file of files) {
-                        const url = await uploadToCloudinary(file);
-                        uploadedUrls.push(url);
-                      }
+                      try {
+                        const uploadedUrls: string[] = [];
+                        for (const file of files) {
+                          const url = await uploadToCloudinary(file);
+                          uploadedUrls.push(url);
+                        }
 
-                      field.onChange([...(field.value ?? []), ...uploadedUrls]);
-                      if (
-                        !form.getValues("thumbnail") &&
-                        uploadedUrls.length > 0
-                      ) {
-                        form.setValue(
-                          "thumbnail",
-                          getThumbnailUrl(uploadedUrls[0]),
-                        );
+                        field.onChange([
+                          ...(field.value ?? []),
+                          ...uploadedUrls,
+                        ]);
+                        if (
+                          !form.getValues("thumbnail") &&
+                          uploadedUrls.length > 0
+                        ) {
+                          form.setValue(
+                            "thumbnail",
+                            getThumbnailUrl(uploadedUrls[0]),
+                          );
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        alert("Image upload failed");
+                      } finally {
+                        setIsUploading(false);
                       }
                     }}
                   />
@@ -290,6 +308,12 @@ const AddPinForm = ({
               </FormItem>
             )}
           />
+          {isUploading && (
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+              Uploading images...
+            </div>
+          )}
           <FormField
             control={form.control}
             name="thumbnail"
@@ -348,7 +372,7 @@ const AddPinForm = ({
                       ✕
                     </button>
 
-                    {/* Thumbnail badge */}
+
                     {selected && (
                       <span className="absolute bottom-1 right-1 z-10 bg-black text-white text-[10px] px-1 rounded">
                         Thumbnail
@@ -364,7 +388,7 @@ const AddPinForm = ({
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit">Save</Button>
+            <Button type="submit"  disabled={isUploading || images.length === 0 || isSubmitting}> {isSubmitting ? "Saving..." : "Save"}</Button>
           </div>
         </form>
       </Form>
