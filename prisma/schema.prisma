@@ -83,8 +83,6 @@ model Verification {
   @@map("verification")
 }
 
-
-
 enum Category {
   STREET_ART
   BUILDING

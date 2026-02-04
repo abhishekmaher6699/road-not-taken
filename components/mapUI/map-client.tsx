@@ -39,11 +39,11 @@ const MapClient = () => {
         }}
       />
 
-        { previewPin ? (
-          <AddLocSidebar 
-            onClose={() => setPreviewPin(null)}
-          />
-        ) : null }
+<AddLocSidebar
+  open={!!previewPin}
+  onClose={() => setPreviewPin(null)}
+/>
+
       
 
       <div className="pointer-events-none absolute inset-0 z-400">

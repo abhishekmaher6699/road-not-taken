@@ -47,5 +47,5 @@ function flyToWithOffset(
   const point = map.project(latlng, zoom);
   const shiftedPoint = point.subtract([offsetX, offsetY]);
   const shiftedLatLng = map.unproject(shiftedPoint, zoom);
-  map.flyTo(shiftedLatLng, zoom);
+  map.flyTo(shiftedLatLng, zoom, {duration: 0.3});
 }
