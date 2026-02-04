@@ -1,11 +1,23 @@
-import Image from "next/image";
-import db from "@/lib/db";
+import AuthPage from "@/components/auth-page/auth-page";
+import { authSession } from "@/lib/auth-utils";
+import MainPage from "@/components/mapUI/main-map";
 
-export default function Home() {
+export default async function Home() {
+
+  const session = await authSession();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-
+    <div className="">
+      {
+        session ? (
+          <div>
+            <MainPage/>
+          </div>
+  
+        ) : <AuthPage />
+      }
+      
+      {/* <AuthPage /> */}
     </div>
   );
 }
