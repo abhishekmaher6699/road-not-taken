@@ -1,11 +1,11 @@
 "use client";
 
-import { LatLng } from "leaflet";
 import MapView from "./map-view";
 import ModeToggle from "./navbar/mode-toggle";
 import { MapSearch } from "./navbar/search-bar";
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import AddLocSidebar from "./sidebar-ui/addloc-sidebar";
+import { Category, Status } from "@/lib/generated/prisma/enums";
 
 type Mode = "view" | "add";
 
@@ -14,11 +14,44 @@ type Latlang = {
   lng: number;
 };
 
+export type PlacePreview = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  category: Category;
+  isActive: Status;
+  thumbnail: string | null;
+};
+
 const MapClient = () => {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("view");
   const [previewPin, setPreviewPin] = useState<Latlang | null>(null);
   const [pendingPin, setPendingPin] = useState<Latlang | null>(null);
+  const [places, setPlaces] = useState<PlacePreview[]>([]);
+
+useEffect(() => {
+  console.log("Fetching places from /api/place");
+  fetch("/api/place")
+    .then((res) => res.json())
+    .then((data: PlacePreview[]) => {
+      setPlaces(
+        data.filter(
+          (p): p is PlacePreview =>
+            Boolean(p) &&
+            typeof p.id === "string" &&
+            typeof p.latitude === "number" &&
+            typeof p.longitude === "number"
+        )
+      );
+    })
+    .catch(console.error);
+}, []);
+
+useEffect(() => {
+  console.log("Rendering MapClient with places:", places);
+}, [places]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
@@ -26,6 +59,7 @@ const MapClient = () => {
         mode={mode}
         previewPin={previewPin}
         pendingPin={pendingPin}
+        places={places}
         onMapClick={(latlng) => {
           console.log("Map clicked at:", latlng);
           setPendingPin(latlng);
@@ -39,12 +73,13 @@ const MapClient = () => {
         }}
       />
 
-      <AddLocSidebar
-        previewPin={previewPin}
-        open={!!previewPin}
-        // open={true}
-        onClose={() => setPreviewPin(null)}
-      />
+<AddLocSidebar
+  previewPin={previewPin}
+  open={!!previewPin}
+  onClose={() => setPreviewPin(null)}
+  onPlacesUpdate={setPlaces}
+/>
+
 
       <div className="pointer-events-none absolute inset-0 z-400">
         <div

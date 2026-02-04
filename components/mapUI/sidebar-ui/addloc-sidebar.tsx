@@ -3,11 +3,16 @@
 import { Button } from "@/components/ui/button";
 import AddPinForm from "./add-pin-form";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
+import { PinValues } from "./add-pin-form";
+import { PlacePreview } from "../map-client";
 
 type SidebarProps = {
   previewPin: Latlang | null;
   open: boolean;
   onClose: () => void;
+onPlacesUpdate: React.Dispatch<
+    React.SetStateAction<PlacePreview[]>
+  >;
 };
 
 type Latlang = {
@@ -15,7 +20,7 @@ type Latlang = {
   lng: number;
 }
 
-const AddLocSidebar = ({ previewPin, open, onClose }: SidebarProps) => {
+const AddLocSidebar = ({ previewPin, onPlacesUpdate, open, onClose }: SidebarProps) => {
 
   const isDesktop = useBreakpoint(1024);
 
@@ -42,7 +47,7 @@ const AddLocSidebar = ({ previewPin, open, onClose }: SidebarProps) => {
 
 
         <div className="h-full w-full bg-gray-100">
-          <AddPinForm previewPin={previewPin} onCancel={onClose}/>
+          <AddPinForm previewPin={previewPin}  onPlacesUpdate={onPlacesUpdate} onCancel={onClose}/>
         </div>
       </div>
     </div>

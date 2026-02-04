@@ -2,7 +2,7 @@ import * as z from "zod";
 import { Category, Status } from "./generated/prisma/enums";
 
 const addPinSchema = z.object({
-  title: z
+  name: z
     .string()
     .min(3, "Title must be at least 3 characters")
     .max(30, "Title must be at most 30 characters"),

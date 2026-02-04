@@ -31,6 +31,7 @@ import { getThumbnailUrl } from "@/lib/cloudinary";
 
 import { addPinSchema } from "@/lib/schemas";
 import { is } from "zod/v4/locales";
+import { PlacePreview } from "../map-client";
 
 type Latlang = {
   lat: number;
@@ -42,9 +43,11 @@ export type PinValues = z.infer<typeof addPinSchema>;
 const AddPinForm = ({
   previewPin,
   onCancel,
+  onPlacesUpdate,
 }: {
   previewPin: Latlang | null;
   onCancel: () => void;
+  onPlacesUpdate: React.Dispatch<React.SetStateAction<PlacePreview[]>>;
 }) => {
   const [fileKey, setFileKey] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -53,7 +56,7 @@ const AddPinForm = ({
   const form = useForm({
     resolver: zodResolver(addPinSchema),
     defaultValues: {
-      title: "",
+      name: "",
       description: "",
       address: "",
       latitude: previewPin?.lat || 0,
@@ -75,16 +78,32 @@ const AddPinForm = ({
   const resetForm = () => {
     form.reset();
     setFileKey((prev) => prev + 1);
-    onCancel();
+    setTimeout(() => onCancel(), 0);
   };
 
   const handleCancel = () => {
     resetForm();
+    setTimeout(() => onCancel(), 0);
   };
 
   const SubmitHandler = async (data: PinValues) => {
-
     setIsSubmitting(true);
+
+    const tempId = `temp-${Date.now()}`;
+
+    // 1️⃣ OPTIMISTIC PLACE
+    const optimisticPlace: PlacePreview = {
+      id: tempId,
+      name: data.name,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      category: data.category,
+      thumbnail: data.thumbnail || null,
+      isActive: Status.ACTIVE,
+    };
+
+    onPlacesUpdate((prev) => [optimisticPlace, ...prev]);
+
     try {
       const place = await fetch("/api/place", {
         method: "POST",
@@ -100,7 +119,26 @@ const AddPinForm = ({
       }
 
       const res = await place.json();
-      console.log("Saved place", res);
+      const savedPlace: PlacePreview = res.place;
+      console.log("Place created:", savedPlace);
+
+      onPlacesUpdate((prev) =>
+        prev.map((p) =>
+          p.id === tempId
+            ? {
+                id: savedPlace.id,
+                name: savedPlace.name,
+                latitude: p.latitude,
+                longitude: p.longitude,
+                category: savedPlace.category,
+                isActive: savedPlace.isActive,
+                thumbnail: p.thumbnail ?? null,
+              }
+            : p,
+        ),
+      );
+
+
       resetForm();
     } catch (error) {
       console.log(error);
@@ -123,7 +161,7 @@ const AddPinForm = ({
           <div className="flex gap-4">
             <FormField
               control={form.control}
-              name="title"
+              name="name"
               render={({ field }) => (
                 <FormItem className="w-[80%]">
                   <FormLabel>Name</FormLabel>
@@ -372,7 +410,6 @@ const AddPinForm = ({
                       ✕
                     </button>
 
-
                     {selected && (
                       <span className="absolute bottom-1 right-1 z-10 bg-black text-white text-[10px] px-1 rounded">
                         Thumbnail
@@ -388,7 +425,13 @@ const AddPinForm = ({
             <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button type="submit"  disabled={isUploading || images.length === 0 || isSubmitting}> {isSubmitting ? "Saving..." : "Save"}</Button>
+            <Button
+              type="submit"
+              disabled={isUploading || images.length === 0 || isSubmitting}
+            >
+              {" "}
+              {isSubmitting ? "Saving..." : "Save"}
+            </Button>
           </div>
         </form>
       </Form>

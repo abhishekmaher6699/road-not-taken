@@ -7,7 +7,7 @@ import {
   ZoomControl,
   useMapEvents,
   Popup,
-  useMap
+  useMap,
 } from "react-leaflet";
 import { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
@@ -19,6 +19,7 @@ import {
   flyToWithOffset,
 } from "@/lib/map-utils";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
+import { PlacePreview } from "./map-client";
 
 type Mode = "view" | "add";
 type Latlang = {
@@ -50,24 +51,19 @@ function MapClickHandler({
   return null;
 }
 
-
-function MapCameraController({
-  previewPin,
-}: {
-  previewPin: Latlang | null;
-}) {
+function MapCameraController({ previewPin }: { previewPin: Latlang | null }) {
   const map = useMap();
   const isDesktop = useBreakpoint(1024);
 
   useEffect(() => {
-    if (!previewPin) return;    
+    if (!previewPin) return;
 
     if (isDesktop) {
-        const offsetX = window.innerWidth *0.2;
-        flyToWithOffset(map, previewPin, offsetX, 0);
+      const offsetX = window.innerWidth * 0.2;
+      flyToWithOffset(map, previewPin, offsetX, 0);
     } else {
-        const offsetY = -window.innerHeight *0.33;
-        flyToWithOffset(map, previewPin, 0, offsetY);
+      const offsetY = -window.innerHeight * 0.33;
+      flyToWithOffset(map, previewPin, 0, offsetY);
     }
   }, [previewPin, isDesktop, map]);
 
@@ -78,17 +74,24 @@ export default function MapView({
   mode,
   previewPin,
   pendingPin,
+  places,
   onMapClick,
   onConfirmPin,
   onCancelPin,
 }: {
   mode: Mode;
+  places: PlacePreview[];
   previewPin: Latlang | null;
   pendingPin: Latlang | null;
   onMapClick: (latlng: Latlang) => void;
   onConfirmPin: () => void;
   onCancelPin: () => void;
 }) {
+
+
+  const uniquePlaces = Array.from(
+  new Map(places.map((p) => [p.id, p])).values()
+);
 
   return (
     <>
@@ -153,6 +156,23 @@ export default function MapView({
             icon={yellowIcon}
           />
         )}
+
+        {uniquePlaces.map((place) => (
+          <Marker  key={`${place.id}-${place.latitude}-${place.longitude}`} position={[place.latitude, place.longitude]} icon={redIcon}>
+            <Popup>
+              <div className="space-y-1">
+                <p className="font-semibold">{place.name}</p>
+                {place.thumbnail && (
+                  <img
+                    src={place.thumbnail}
+                    className="h-20 w-full object-cover rounded"
+                    alt={place.name}
+                  />
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </>
   );
