@@ -12,7 +12,7 @@ type Mode = "view" | "add";
 type Latlang = {
   lat: number;
   lng: number;
-}
+};
 
 const MapClient = () => {
   const [query, setQuery] = useState("");
@@ -39,12 +39,12 @@ const MapClient = () => {
         }}
       />
 
-<AddLocSidebar
-  open={!!previewPin}
-  onClose={() => setPreviewPin(null)}
-/>
-
-      
+      <AddLocSidebar
+        previewPin={previewPin}
+        open={!!previewPin}
+        // open={true}
+        onClose={() => setPreviewPin(null)}
+      />
 
       <div className="pointer-events-none absolute inset-0 z-400">
         <div
