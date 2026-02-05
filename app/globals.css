@@ -123,3 +123,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+  background: white;
+}

@@ -10,18 +10,20 @@ type SidebarProps = {
   previewPin: Latlang | null;
   open: boolean;
   onClose: () => void;
-onPlacesUpdate: React.Dispatch<
-    React.SetStateAction<PlacePreview[]>
-  >;
+  onPlacesUpdate: React.Dispatch<React.SetStateAction<PlacePreview[]>>;
 };
 
 type Latlang = {
   lat: number;
   lng: number;
-}
+};
 
-const AddLocSidebar = ({ previewPin, onPlacesUpdate, open, onClose }: SidebarProps) => {
-
+const AddLocSidebar = ({
+  previewPin,
+  onPlacesUpdate,
+  open,
+  onClose,
+}: SidebarProps) => {
   const isDesktop = useBreakpoint(1024);
 
   return (
@@ -35,19 +37,32 @@ const AddLocSidebar = ({ previewPin, onPlacesUpdate, open, onClose }: SidebarPro
         
 
         ${
-          open ? isDesktop ? "translate-x-0" : "translate-y-0" : isDesktop ? "-translate-x-full" : "translate-y-full" 
+          open
+            ? isDesktop
+              ? "translate-x-0"
+              : "translate-y-0"
+            : isDesktop
+              ? "-translate-x-full"
+              : "translate-y-full"
         }
       `}
     >
       <div className="relative h-full w-full overflow-auto">
-
         <div className="flex justify-end p-2 lg:p-4">
-          <Button onClick={onClose} className="bg-transparent text-black hover:bg-gray-200">X</Button>
+          <Button
+            onClick={onClose}
+            className="bg-transparent text-black hover:bg-gray-200"
+          >
+            X
+          </Button>
         </div>
 
-
         <div className="h-full w-full bg-gray-100">
-          <AddPinForm previewPin={previewPin}  onPlacesUpdate={onPlacesUpdate} onCancel={onClose}/>
+          <AddPinForm
+            previewPin={previewPin}
+            onPlacesUpdate={onPlacesUpdate}
+            onCancel={onClose}
+          />
         </div>
       </div>
     </div>

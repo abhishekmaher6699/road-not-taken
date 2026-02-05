@@ -81,6 +81,7 @@ export async function GET() {
         name: true,
         category: true,
         isActive: true,
+        address: true,
         preview: {
           select: {
             latitude: true,
@@ -91,9 +92,8 @@ export async function GET() {
       },
     });
 
-    // 🔑 flatten shape for frontend
     const previews = places
-      .filter((p) => p.preview) // safety
+      .filter((p) => p.preview) 
       .map((p) => ({
         id: p.id,
         name: p.name,
@@ -102,6 +102,7 @@ export async function GET() {
         latitude: p.preview!.latitude,
         longitude: p.preview!.longitude,
         thumbnail: p.preview!.thumbnail,
+        address: p.address,
       }));
 
     return NextResponse.json(previews);

@@ -40,15 +40,17 @@ type Latlang = {
 
 export type PinValues = z.infer<typeof addPinSchema>;
 
+type AddPinFormProps = {
+  previewPin: Latlang | null;
+  onCancel: () => void;
+  onPlacesUpdate: React.Dispatch<React.SetStateAction<PlacePreview[]>>;
+};
+
 const AddPinForm = ({
   previewPin,
   onCancel,
   onPlacesUpdate,
-}: {
-  previewPin: Latlang | null;
-  onCancel: () => void;
-  onPlacesUpdate: React.Dispatch<React.SetStateAction<PlacePreview[]>>;
-}) => {
+}: AddPinFormProps) => {
   const [fileKey, setFileKey] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,18 +82,10 @@ const AddPinForm = ({
     setFileKey((prev) => prev + 1);
     setTimeout(() => onCancel(), 0);
   };
-
-  const handleCancel = () => {
-    resetForm();
-    setTimeout(() => onCancel(), 0);
-  };
-
   const SubmitHandler = async (data: PinValues) => {
     setIsSubmitting(true);
-
     const tempId = `temp-${Date.now()}`;
 
-    // 1️⃣ OPTIMISTIC PLACE
     const optimisticPlace: PlacePreview = {
       id: tempId,
       name: data.name,
@@ -100,6 +94,7 @@ const AddPinForm = ({
       category: data.category,
       thumbnail: data.thumbnail || null,
       isActive: Status.ACTIVE,
+      address: data.address,
     };
 
     onPlacesUpdate((prev) => [optimisticPlace, ...prev]);
@@ -133,11 +128,11 @@ const AddPinForm = ({
                 category: savedPlace.category,
                 isActive: savedPlace.isActive,
                 thumbnail: p.thumbnail ?? null,
+                address: savedPlace.address,
               }
             : p,
         ),
       );
-
 
       resetForm();
     } catch (error) {
@@ -299,6 +294,7 @@ const AddPinForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Images</FormLabel>
+
                 <FormControl>
                   <Input
                     key={fileKey}
@@ -315,23 +311,33 @@ const AddPinForm = ({
 
                       try {
                         const uploadedUrls: string[] = [];
+
                         for (const file of files) {
                           const url = await uploadToCloudinary(file);
                           uploadedUrls.push(url);
                         }
 
-                        field.onChange([
-                          ...(field.value ?? []),
-                          ...uploadedUrls,
-                        ]);
-                        if (
-                          !form.getValues("thumbnail") &&
-                          uploadedUrls.length > 0
-                        ) {
-                          form.setValue(
-                            "thumbnail",
-                            getThumbnailUrl(uploadedUrls[0]),
-                          );
+                        const existing = field.value ?? [];
+                        let nextImages: string[];
+
+                        if (existing.length === 0) {
+                          nextImages = uploadedUrls;
+                        } else {
+                          nextImages = [
+                            existing[0],
+                            ...existing.slice(1),
+                            ...uploadedUrls,
+                          ];
+                        }
+
+                        form.setValue("images", nextImages, {
+                          shouldValidate: true,
+                        });
+
+                        if (nextImages.length > 0) {
+                          form.setValue("thumbnail", nextImages[0], {
+                            shouldValidate: true,
+                          });
                         }
                       } catch (err) {
                         console.error(err);
@@ -342,67 +348,87 @@ const AddPinForm = ({
                     }}
                   />
                 </FormControl>
+
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* Uploading indicator */}
           {isUploading && (
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
               Uploading images...
             </div>
           )}
+
           <FormField
             control={form.control}
             name="thumbnail"
             render={() => (
               <FormItem>
-                {/* No input, only error */}
                 <FormMessage />
               </FormItem>
             )}
           />
+
           {images.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2 mt-4">
               {images.map((url, index) => {
-                const thumbUrl = getThumbnailUrl(url);
-                const selected = thumbnail === thumbUrl;
+                const previewUrl = getThumbnailUrl(url); // 👈 UI ONLY
+                const isThumbnail = index === 0;
 
                 return (
                   <div
                     key={url}
                     className={`relative h-20 rounded overflow-hidden border ${
-                      selected ? "ring-2 ring-black" : ""
+                      isThumbnail ? "ring-2 ring-black" : ""
                     }`}
                   >
-                    {/* Thumbnail select button */}
                     <button
                       type="button"
-                      onClick={() =>
-                        form.setValue("thumbnail", thumbUrl, {
+                      onClick={() => {
+                        const reordered = [
+                          images[index],
+                          ...images.filter((_, i) => i !== index),
+                        ];
+
+                        form.setValue("images", reordered, {
                           shouldValidate: true,
-                        })
-                      }
+                        });
+
+                    
+                        form.setValue("thumbnail", reordered[0], {
+                          shouldValidate: true,
+                        });
+                      }}
                       className="absolute inset-0"
                     >
                       <img
-                        src={thumbUrl}
-                        className="h-full w-full object-cover"
+                        src={previewUrl}
                         alt="preview"
+                        className="h-full w-full object-cover"
                       />
                     </button>
+
 
                     <button
                       type="button"
                       onClick={() => {
                         const newImages = images.filter((_, i) => i !== index);
-                        form.setValue("images", newImages);
 
-                        if (thumbnail === thumbUrl) {
-                          form.setValue("thumbnail", "");
-                        }
-                        if (newImages.length === 0) {
-                          form.setValue("thumbnail", "");
+                        form.setValue("images", newImages, {
+                          shouldValidate: true,
+                        });
+
+                        if (newImages.length > 0) {
+                          form.setValue("thumbnail", newImages[0], {
+                            shouldValidate: true,
+                          });
+                        } else {
+                          form.setValue("thumbnail", "", {
+                            shouldValidate: true,
+                          });
                         }
                       }}
                       className="absolute top-1 right-1 z-10 bg-black/60 text-white text-xs px-1 rounded"
@@ -410,7 +436,7 @@ const AddPinForm = ({
                       ✕
                     </button>
 
-                    {selected && (
+                    {isThumbnail && (
                       <span className="absolute bottom-1 right-1 z-10 bg-black text-white text-[10px] px-1 rounded">
                         Thumbnail
                       </span>
@@ -422,7 +448,7 @@ const AddPinForm = ({
           )}
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleCancel}>
+            <Button type="button" variant="outline" onClick={resetForm}>
               Cancel
             </Button>
             <Button
