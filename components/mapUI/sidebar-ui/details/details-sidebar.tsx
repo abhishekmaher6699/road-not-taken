@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
-import { PlacePreview } from "../map-client";
+import { PlacePreview } from "../../map-client";
 import { Status } from "@/lib/generated/prisma/enums";
 import { getThumbnailUrl } from "@/lib/cloudinary";
+import PlaceControls from "./details-control";
 
 import LightGallery from "lightgallery/react";
 import lgZoom from "lightgallery/plugins/zoom";
@@ -20,6 +21,9 @@ type SidebarProps = {
   open: boolean;
   place: PlacePreview | null;
   onClose: () => void;
+  isOwner: boolean;
+  onDeleted: (placeId: string) => void;
+  onEdit: (placeId: string) => void;
 };
 
 type PlaceDetails = {
@@ -31,12 +35,20 @@ type PlaceDetails = {
   }[];
 } | null;
 
-const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
+const DetailsSidebar = ({
+  open,
+  place,
+  onClose,
+  onDeleted,
+  onEdit,
+  isOwner,
+}: SidebarProps) => {
   const [placeDetails, setPlaceDetails] = useState<PlaceDetails>(null);
   const [loading, setLoading] = useState(false);
 
   const isDesktop = useBreakpoint(1024);
   const galleryRef = useRef<ILightGallery | null>(null);
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
 
   // fetch details
   useEffect(() => {
@@ -67,12 +79,15 @@ const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
 
   return (
     <div
+      ref={sidebarRef}
+      onMouseDown={(e) => e.stopPropagation()}
       className={`
         fixed z-400 bg-gray-100 shadow-lg
         transition-transform duration-200 ease-out
         lg:top-0 lg:left-0 lg:h-full lg:w-[40%]
         bottom-0 h-[75%] w-full
         pointer-events-auto
+        no-scrollbar
 
         ${
           open
@@ -86,7 +101,7 @@ const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
       `}
     >
       {place && (
-        <div className="relative h-full w-full overflow-auto">
+        <div className="relative  no-scrollbar h-full w-full overflow-auto">
           {/* Close */}
           <div className="absolute right-2 top-2 z-400 lg:right-4 lg:top-4">
             <Button
@@ -127,21 +142,33 @@ const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
             </div>
           )}
 
-          <div className="p-4 space-y-4">
+            <PlaceControls
+              placeId={place.id}
+              isOwner={isOwner}
+              onEdit={onEdit}
+              onDeleted={(id) => {
+                onDeleted(id);
+                onClose();
+              }}
+            />
+          <div className="px-4 py-3 space-y-4">
             {/* Address */}
             {place.address && (
-              <p className="text-gray-800 text-md tracking-tighter">
-                📍 {place.address}
-              </p>
+              <div className="rounded-xl border border-gray-200 hover:bg-gray-200 bg-gray-100 px-3 py-4">
+                <p className="flex items-start gap-2 text-sm text-gray-700 leading-snug">
+                  <span className="mt-px text-gray-400">📍</span>
+                  <span>{place.address}</span>
+                </p>
+              </div>
             )}
 
             {/* Description */}
-            <div>
-              <h2 className="text-sm font-bold text-gray-900 mb-1">About</h2>
+            <div className="rounded-xl  hover:bg-gray-200 border border-gray-200 bg-gray-100 px-3 py-4">
+              <h2 className="text-sm font-medium text-gray-900 mb-1">About</h2>
               {loading ? (
-                <p className="text-sm text-gray-400">Loading description…</p>
+                <p className="text-sm  text-gray-400">Loading description…</p>
               ) : placeDetails?.description ? (
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm  text-gray-700 leading-relaxed">
                   {placeDetails.description}
                 </p>
               ) : (
@@ -152,12 +179,12 @@ const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
             </div>
 
             {placeDetails?.images && (
-              <div>
-                <h2 className="text-sm text-gray-900 font-bold mb-2">
+              <div className="rounded-xl border border-gray-200 bg-gray-100 px-3 py-4">
+                <h2 className="text-sm text-gray-900 font-medium mb-2">
                   Gallery
                 </h2>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 pt-2">
                   {placeDetails.images.map((img, index) => (
                     <button
                       key={img.id}
@@ -179,6 +206,8 @@ const DetailsSidebar = ({ open, place, onClose }: SidebarProps) => {
                 </div>
               </div>
             )}
+
+
           </div>
 
           {/* Hidden LightGallery */}

@@ -8,15 +8,15 @@ export default async function Home() {
 
   return (
     <div className="">
-      {/* {
+      {
         session ? (
           <div>
             <MainPage/>
           </div>
   
         ) : <AuthPage />
-      } */}
-    <MainPage/>
+      }
+    {/* <MainPage/> */}
       {/* <AuthPage /> */}
     </div>
   );

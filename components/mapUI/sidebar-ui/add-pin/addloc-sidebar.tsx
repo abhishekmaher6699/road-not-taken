@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import AddPinForm from "./add-pin-form";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
 import { PinValues } from "./add-pin-form";
-import { PlacePreview } from "../map-client";
+import { PlacePreview } from "../../map-client";
 
 type SidebarProps = {
   previewPin: Latlang | null;
@@ -47,7 +47,7 @@ const AddLocSidebar = ({
         }
       `}
     >
-      <div className="relative h-full w-full overflow-auto">
+      <div className="relative no-scrollbar h-full w-full overflow-auto">
         <div className="flex justify-end p-2 lg:p-4">
           <Button
             onClick={onClose}

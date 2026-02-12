@@ -31,7 +31,7 @@ import { getThumbnailUrl } from "@/lib/cloudinary";
 
 import { addPinSchema } from "@/lib/schemas";
 import { is } from "zod/v4/locales";
-import { PlacePreview } from "../map-client";
+import { PlacePreview } from "../../map-client";
 
 type Latlang = {
   lat: number;
@@ -95,6 +95,7 @@ const AddPinForm = ({
       thumbnail: data.thumbnail || null,
       isActive: Status.ACTIVE,
       address: data.address,
+      createdBy: ""
     };
 
     onPlacesUpdate((prev) => [optimisticPlace, ...prev]);
@@ -129,6 +130,7 @@ const AddPinForm = ({
                 isActive: savedPlace.isActive,
                 thumbnail: p.thumbnail ?? null,
                 address: savedPlace.address,
+                createdBy: savedPlace.createdBy
               }
             : p,
         ),

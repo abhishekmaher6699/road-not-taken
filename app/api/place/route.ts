@@ -82,6 +82,7 @@ export async function GET() {
         category: true,
         isActive: true,
         address: true,
+        createdBy: true,
         preview: {
           select: {
             latitude: true,
@@ -103,6 +104,7 @@ export async function GET() {
         longitude: p.preview!.longitude,
         thumbnail: p.preview!.thumbnail,
         address: p.address,
+        createdBy: p.createdBy.id
       }));
 
     return NextResponse.json(previews);

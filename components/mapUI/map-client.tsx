@@ -1,21 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import MapView from "./map-view";
 import ModeToggle from "./navbar/mode-toggle";
 import { MapSearch } from "./navbar/search-bar";
-import { use, useEffect, useState } from "react";
-import AddLocSidebar from "./sidebar-ui/addloc-sidebar";
+import AddLocSidebar from "./sidebar-ui/add-pin/addloc-sidebar";
+import DetailsSidebar from "./sidebar-ui/details/details-sidebar";
 import { Category, Status } from "@/lib/generated/prisma/enums";
-import DetailsSidebar from "./sidebar-ui/details-sidebar";
 
 type Mode = "view" | "add";
+type ActiveSidebar = "add" | "details" | null;
 
-type Latlang = {
+type LatLng = {
   lat: number;
   lng: number;
 };
-
-type ActiveSidebar = "add" | "details" | null;
 
 export type PlacePreview = {
   id: string;
@@ -26,40 +25,82 @@ export type PlacePreview = {
   isActive: Status;
   thumbnail: string | null;
   address: string;
+  createdBy: string; // ✅ fixed
 };
 
-const MapClient = () => {
+type MapClientProps = {
+  session: {
+    user?: {
+      id?: string;
+    };
+  } | null;
+};
+
+const MapClient = ({ session }: MapClientProps) => {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("view");
-  const [previewPin, setPreviewPin] = useState<Latlang | null>(null);
-  const [pendingPin, setPendingPin] = useState<Latlang | null>(null);
-  const [places, setPlaces] = useState<PlacePreview[]>([]);
-  const [selectedPlace, setSelectedPlace] = useState<PlacePreview | null>(null);
-  const [activeSidebar, setActiveSidebar] = useState<ActiveSidebar>(null);
 
-  console.log(selectedPlace);
+  const [previewPin, setPreviewPin] = useState<LatLng | null>(null);
+  const [pendingPin, setPendingPin] = useState<LatLng | null>(null);
+
+  const [places, setPlaces] = useState<PlacePreview[]>([]);
+  const [selectedPlace, setSelectedPlace] =
+    useState<PlacePreview | null>(null);
+
+  const [activeSidebar, setActiveSidebar] =
+    useState<ActiveSidebar>(null);
+
 
   useEffect(() => {
-    console.log("Fetching places from /api/place");
-    fetch("/api/place")
-      .then((res) => res.json())
-      .then((data: PlacePreview[]) => {
+    const fetchPlaces = async () => {
+      try {
+        const res = await fetch("/api/place");
+        if (!res.ok) throw new Error("Failed to fetch places");
+
+        const data: PlacePreview[] = await res.json();
+
         setPlaces(
           data.filter(
             (p): p is PlacePreview =>
-              Boolean(p) &&
+              !!p &&
               typeof p.id === "string" &&
               typeof p.latitude === "number" &&
-              typeof p.longitude === "number",
-          ),
+              typeof p.longitude === "number"
+          )
         );
-      })
-      .catch(console.error);
+      } catch (err) {
+        console.error("Error fetching places:", err);
+      }
+    };
+
+    fetchPlaces();
   }, []);
 
-  useEffect(() => {
-    console.log("Rendering MapClient with places:", places);
-  }, [places]);
+
+
+
+  const isOwner = selectedPlace?.createdBy === session?.user?.id;
+
+
+  const closeDetails = () => {
+    setActiveSidebar(null);
+    setTimeout(() => setSelectedPlace(null), 200);
+  };
+
+  const handleDelete = (placeId: string) => {
+    setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+
+    if (selectedPlace?.id === placeId) {
+      closeDetails();
+    }
+  };
+
+  const handleEdit = (placeId: string) => {
+    closeDetails();
+  };
+
+
+  
 
   return (
     <div className="relative h-screen w-full overflow-hidden">
@@ -69,22 +110,17 @@ const MapClient = () => {
         pendingPin={pendingPin}
         places={places}
         selectedPlace={selectedPlace}
-        onMapClick={(latlng) => {
-          console.log("Map clicked at:", latlng);
-          setPendingPin(latlng);
-        }}
+        onMapClick={setPendingPin}
         onConfirmPin={() => {
           setPreviewPin(pendingPin);
           setPendingPin(null);
+          setSelectedPlace(null);
           setActiveSidebar("add");
-          setSelectedPlace(null); // ensure exclusivity
         }}
-        onCancelPin={() => {
-          setPendingPin(null);
-        }}
+        onCancelPin={() => setPendingPin(null)}
         onSelectPlace={(place) => {
           setSelectedPlace(place);
-          setPreviewPin(null); // close add flow
+          setPreviewPin(null);
           setActiveSidebar("details");
         }}
       />
@@ -99,26 +135,25 @@ const MapClient = () => {
         onPlacesUpdate={setPlaces}
       />
 
+      {activeSidebar === "details" && (
+        <div
+          className="fixed inset-0 z-300 bg-black/40"
+          onClick={closeDetails}
+        />
+      )}
+
       <DetailsSidebar
         open={activeSidebar === "details"}
         place={selectedPlace}
-        onClose={() => {
-          setActiveSidebar(null);
-          setTimeout(() => {
-            setSelectedPlace(null);
-          }, 200);
-        }}
+        isOwner={isOwner}
+        onClose={closeDetails}
+        onDeleted={handleDelete}
+        onEdit={handleEdit}
       />
 
+      {/* Top Controls */}
       <div className="pointer-events-none absolute inset-0 z-400">
-        <div
-          className="
-            pointer-events-auto
-            absolute
-            top-4 left-4
-            flex flex-wrap items-center gap-2 max-w-[calc(100vw-6rem)]
-          "
-        >
+        <div className="pointer-events-auto absolute top-4 left-4 flex flex-wrap items-center gap-2 max-w-[calc(100vw-6rem)]">
           <div className="w-full sm:w-auto">
             <MapSearch value={query} onChange={setQuery} />
           </div>
