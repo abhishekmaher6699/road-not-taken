@@ -19,41 +19,9 @@ import {
   flyToWithOffset,
 } from "@/lib/map-utils";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
-import { PlacePreview } from "./map-client";
+import { PlacePopupProps, MapCameraControllerProps, MapClickHandlerProps, MapViewProps } from "@/lib/types";
 import { Category, Status } from "@/lib/generated/prisma/enums";
 
-type Mode = "view" | "add";
-type Latlang = {
-  lat: number;
-  lng: number;
-};
-
-type MapClickHandlerProps = {
-  mode: Mode;
-  disabled: boolean;
-  onMapClick: (latlng: Latlang) => void;
-};
-
-type MapCameraControllerProps = {
-  previewPin: Latlang | null;
-  selectedPlace: PlacePreview | null;
-};
-
-type MapViewProps = {
-  mode: Mode;
-  places: PlacePreview[];
-  previewPin: Latlang | null;
-  pendingPin: Latlang | null;
-  selectedPlace: PlacePreview | null;
-  onMapClick: (latlng: Latlang) => void;
-  onConfirmPin: () => void;
-  onCancelPin: () => void;
-  onSelectPlace: (place: PlacePreview) => void;
-};
-type PlacePopupProps = {
-  place: PlacePreview;
-  onSelect: (place: PlacePreview) => void;
-};
 
 function PlacePopup({ place, onSelect }: PlacePopupProps) {
   const map = useMap();

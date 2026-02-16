@@ -1,13 +1,8 @@
 "use client";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ModeToggleProps, Mode } from "@/lib/types";
 
-type Mode = "view" | "add";
-
-type ModeToggleProps = {
-  mode: Mode;
-  onChange: (mode: Mode) => void;
-};
 
 const ModeToggle = ({ mode, onChange }: ModeToggleProps) => {
   return (

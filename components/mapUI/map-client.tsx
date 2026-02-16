@@ -4,39 +4,14 @@ import { useEffect, useState } from "react";
 import MapView from "./map-view";
 import ModeToggle from "./navbar/mode-toggle";
 import { MapSearch } from "./navbar/search-bar";
-import AddLocSidebar from "./sidebar-ui/add-pin/addloc-sidebar";
+import AddLocSidebar from "./sidebar-ui/pins/form-sidebar";
 import DetailsSidebar from "./sidebar-ui/details/details-sidebar";
-import { Category, Status } from "@/lib/generated/prisma/enums";
+import { MapClientProps, Mode, LatLng, PlaceDetails, PlacePreview, ActiveSidebar, FullPlace } from "@/lib/types";
 
-type Mode = "view" | "add";
-type ActiveSidebar = "add" | "details" | null;
 
-type LatLng = {
-  lat: number;
-  lng: number;
-};
-
-export type PlacePreview = {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  category: Category;
-  isActive: Status;
-  thumbnail: string | null;
-  address: string;
-  createdBy: string; // ✅ fixed
-};
-
-type MapClientProps = {
-  session: {
-    user?: {
-      id?: string;
-    };
-  } | null;
-};
 
 const MapClient = ({ session }: MapClientProps) => {
+
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("view");
 
@@ -44,12 +19,21 @@ const MapClient = ({ session }: MapClientProps) => {
   const [pendingPin, setPendingPin] = useState<LatLng | null>(null);
 
   const [places, setPlaces] = useState<PlacePreview[]>([]);
-  const [selectedPlace, setSelectedPlace] =
-    useState<PlacePreview | null>(null);
+  const [placeDetails, setPlaceDetails] = useState<PlaceDetails>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlacePreview | null>(null);
 
-  const [activeSidebar, setActiveSidebar] =
-    useState<ActiveSidebar>(null);
+  const [activeSidebar, setActiveSidebar] = useState<ActiveSidebar>(null);
 
+  const fullPlace: FullPlace | null =
+    selectedPlace && placeDetails
+      ? {
+          ...selectedPlace,
+          description: placeDetails.description ?? "",
+          images: placeDetails.images.map((img) => img.url),
+        }
+      : null;
+
+  console.log(places)
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -76,11 +60,10 @@ const MapClient = ({ session }: MapClientProps) => {
     fetchPlaces();
   }, []);
 
-
-
-
   const isOwner = selectedPlace?.createdBy === session?.user?.id;
 
+  console.log(isOwner)
+  console.log(selectedPlace?.createdBy)
 
   const closeDetails = () => {
     setActiveSidebar(null);
@@ -95,8 +78,8 @@ const MapClient = ({ session }: MapClientProps) => {
     }
   };
 
-  const handleEdit = (placeId: string) => {
-    closeDetails();
+  const handleEdit = () => {
+    setActiveSidebar("edit");
   };
 
 
@@ -126,14 +109,22 @@ const MapClient = ({ session }: MapClientProps) => {
       />
 
       <AddLocSidebar
-        previewPin={previewPin}
-        open={activeSidebar === "add"}
+        previewPin={
+          activeSidebar === "edit" && selectedPlace
+            ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude }
+            : previewPin
+        }
+        open={activeSidebar === "add" || activeSidebar === 'edit'}
         onClose={() => {
           setPreviewPin(null);
           setActiveSidebar(null);
         }}
         onPlacesUpdate={setPlaces}
+        editPlace={
+          activeSidebar === "edit" ? fullPlace : null
+        }
       />
+
 
       {activeSidebar === "details" && (
         <div
@@ -149,6 +140,8 @@ const MapClient = ({ session }: MapClientProps) => {
         onClose={closeDetails}
         onDeleted={handleDelete}
         onEdit={handleEdit}
+        placeDetails={placeDetails}
+        setPlaceDetails={setPlaceDetails}
       />
 
       {/* Top Controls */}

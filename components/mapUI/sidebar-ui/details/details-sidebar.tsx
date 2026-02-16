@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
-import { PlacePreview } from "../../map-client";
+import { SidebarProps } from "@/lib/types";
 import { Status } from "@/lib/generated/prisma/enums";
 import { getThumbnailUrl } from "@/lib/cloudinary";
 import PlaceControls from "./details-control";
@@ -17,23 +17,6 @@ import "lightgallery/css/lightgallery.css";
 import "lightgallery/css/lg-zoom.css";
 import "lightgallery/css/lg-thumbnail.css";
 
-type SidebarProps = {
-  open: boolean;
-  place: PlacePreview | null;
-  onClose: () => void;
-  isOwner: boolean;
-  onDeleted: (placeId: string) => void;
-  onEdit: (placeId: string) => void;
-};
-
-type PlaceDetails = {
-  description: string | null;
-  images: {
-    id: string;
-    url: string;
-    order: number;
-  }[];
-} | null;
 
 const DetailsSidebar = ({
   open,
@@ -42,8 +25,9 @@ const DetailsSidebar = ({
   onDeleted,
   onEdit,
   isOwner,
+  placeDetails,
+  setPlaceDetails
 }: SidebarProps) => {
-  const [placeDetails, setPlaceDetails] = useState<PlaceDetails>(null);
   const [loading, setLoading] = useState(false);
 
   const isDesktop = useBreakpoint(1024);

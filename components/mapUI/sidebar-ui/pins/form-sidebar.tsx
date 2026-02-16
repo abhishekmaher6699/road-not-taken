@@ -1,29 +1,20 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import AddPinForm from "./add-pin-form";
+import PinForm from "./pin-form";
 import { useBreakpoint } from "@/hooks/useBreakPoint";
-import { PinValues } from "./add-pin-form";
-import { PlacePreview } from "../../map-client";
+import { PinSidebarProps } from "@/lib/types";
 
-type SidebarProps = {
-  previewPin: Latlang | null;
-  open: boolean;
-  onClose: () => void;
-  onPlacesUpdate: React.Dispatch<React.SetStateAction<PlacePreview[]>>;
-};
 
-type Latlang = {
-  lat: number;
-  lng: number;
-};
+
 
 const AddLocSidebar = ({
   previewPin,
   onPlacesUpdate,
   open,
   onClose,
-}: SidebarProps) => {
+  editPlace
+}: PinSidebarProps) => {
   const isDesktop = useBreakpoint(1024);
 
   return (
@@ -58,10 +49,12 @@ const AddLocSidebar = ({
         </div>
 
         <div className="h-full w-full bg-gray-100">
-          <AddPinForm
+          <PinForm
+            key = {editPlace?.id ?? "new"}
             previewPin={previewPin}
             onPlacesUpdate={onPlacesUpdate}
             onCancel={onClose}
+            editPlace={editPlace}
           />
         </div>
       </div>

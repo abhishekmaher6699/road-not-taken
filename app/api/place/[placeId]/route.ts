@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import  prisma  from "@/lib/db";
 import { authSession } from "@/lib/auth-utils";
-
+import { addPinSchema } from "@/lib/schemas";
 
 
 export async function DELETE(
@@ -52,4 +52,71 @@ export async function DELETE(
             { status: 500 }
         );
     }
+}
+
+
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ placeId: string }> }
+) {
+  const { placeId } = await context.params;
+  const body = await req.json();
+  const data = addPinSchema.parse(body);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.place.update({
+      where: { id: placeId },
+      data: {
+        name: data.name,
+        address: data.address,
+        category: data.category,
+        isActive: data.isActive,
+      },
+    });
+
+    await tx.placePreview.update({
+      where: { placeId },
+      data: {
+        latitude: data.latitude,
+        longitude: data.longitude,
+        thumbnail: data.thumbnail,
+      },
+    });
+
+    await tx.placeDetails.update({
+      where: { placeId },
+      data: { description: data.description },
+    });
+
+    await tx.placeImage.deleteMany({
+      where: { placeId },
+    });
+
+    await tx.placeImage.createMany({
+      data: data.images.map((url, i) => ({
+        placeId,
+        url,
+        order: i,
+      })),
+    });
+
+    const place = await tx.place.findUnique({
+      where: { id: placeId },
+      include: { preview: true },
+    });
+
+    return {
+      id: place!.id,
+      name: place!.name,
+      address: place!.address,
+      category: place!.category,
+      isActive: place!.isActive,
+      latitude: place!.preview!.latitude,
+      longitude: place!.preview!.longitude,
+      thumbnail: place!.preview!.thumbnail,
+      createdBy: place!.createdById,
+    };
+  });
+
+  return Response.json({ place: updated });
 }

@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "components/mapUI/sidebar-ui/edit-pin/editpin-sidebar"  ],
   "exclude": ["node_modules"]
 }
