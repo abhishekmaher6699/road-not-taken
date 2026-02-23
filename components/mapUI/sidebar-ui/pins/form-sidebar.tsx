@@ -8,7 +8,7 @@ import { PinSidebarProps } from "@/lib/types";
 
 
 
-const AddLocSidebar = ({
+const FormSidebar = ({
   previewPin,
   onPlacesUpdate,
   open,
@@ -62,4 +62,5 @@ const AddLocSidebar = ({
   );
 };
 
-export default AddLocSidebar;
+export default FormSidebar
+;

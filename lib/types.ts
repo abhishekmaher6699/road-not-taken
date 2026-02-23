@@ -2,6 +2,7 @@ import { Category, Status } from "./generated/prisma/enums";
 
 export type Mode = "view" | "add" | "edit";
 export type ActiveSidebar = "add" | "details" | "edit" | null;
+export type BaseMap = "imagery" | "normal";
 
 export type LatLng = {
   lat: number;
@@ -86,12 +87,14 @@ export type MapClickHandlerProps = {
 export type MapCameraControllerProps = {
   previewPin: Latlang | null;
   selectedPlace: PlacePreview | null;
+  userLocation?: Latlang | null;
 };
 
 export type MapViewProps = {
   mode: Mode;
   places: PlacePreview[];
   previewPin: Latlang | null;
+  basemap: BaseMap;
   pendingPin: Latlang | null;
   selectedPlace: PlacePreview | null;
   onMapClick: (latlng: Latlang) => void;

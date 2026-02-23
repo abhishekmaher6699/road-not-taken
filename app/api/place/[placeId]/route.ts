@@ -54,69 +54,120 @@ export async function DELETE(
     }
 }
 
-
 export async function PUT(
   req: Request,
   context: { params: Promise<{ placeId: string }> }
 ) {
-  const { placeId } = await context.params;
-  const body = await req.json();
-  const data = addPinSchema.parse(body);
+  try {
+    const session = await authSession();
 
-  const updated = await prisma.$transaction(async (tx) => {
-    await tx.place.update({
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { placeId } = await context.params;
+
+    const existingPlace = await prisma.place.findUnique({
       where: { id: placeId },
-      data: {
-        name: data.name,
-        address: data.address,
-        category: data.category,
-        isActive: data.isActive,
+      select: { createdById: true },
+    });
+
+    if (!existingPlace) {
+      return NextResponse.json(
+        { error: "Place not found" },
+        { status: 404 }
+      );
+    }
+
+    if (existingPlace.createdById !== session.user.id) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+    const data = addPinSchema.parse(body);
+
+    // ✅ Batch transaction (NO interactive transaction)
+    await prisma.$transaction([
+      prisma.place.update({
+        where: { id: placeId },
+        data: {
+          name: data.name,
+          address: data.address,
+          category: data.category,
+          isActive: data.isActive,
+        },
+      }),
+
+      prisma.placePreview.update({
+        where: { placeId },
+        data: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          thumbnail: data.thumbnail,
+        },
+      }),
+
+      prisma.placeDetails.update({
+        where: { placeId },
+        data: {
+          description: data.description,
+        },
+      }),
+
+      prisma.placeImage.deleteMany({
+        where: { placeId },
+      }),
+
+      prisma.placeImage.createMany({
+        data: data.images.map((url, index) => ({
+          placeId,
+          url,
+          order: index,
+        })),
+      }),
+    ]);
+
+    // Fetch updated result
+    const place = await prisma.place.findUnique({
+      where: { id: placeId },
+      include: {
+        preview: true,
       },
     });
 
-    await tx.placePreview.update({
-      where: { placeId },
-      data: {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        thumbnail: data.thumbnail,
+    if (!place) {
+      return NextResponse.json(
+        { error: "Failed to fetch updated place" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      place: {
+        id: place.id,
+        name: place.name,
+        address: place.address,
+        category: place.category,
+        isActive: place.isActive,
+        latitude: place.preview?.latitude,
+        longitude: place.preview?.longitude,
+        thumbnail: place.preview?.thumbnail,
+        createdBy: place.createdById,
       },
     });
 
-    await tx.placeDetails.update({
-      where: { placeId },
-      data: { description: data.description },
-    });
+  } catch (error) {
+    console.error("PUT /api/place error:", error);
 
-    await tx.placeImage.deleteMany({
-      where: { placeId },
-    });
-
-    await tx.placeImage.createMany({
-      data: data.images.map((url, i) => ({
-        placeId,
-        url,
-        order: i,
-      })),
-    });
-
-    const place = await tx.place.findUnique({
-      where: { id: placeId },
-      include: { preview: true },
-    });
-
-    return {
-      id: place!.id,
-      name: place!.name,
-      address: place!.address,
-      category: place!.category,
-      isActive: place!.isActive,
-      latitude: place!.preview!.latitude,
-      longitude: place!.preview!.longitude,
-      thumbnail: place!.preview!.thumbnail,
-      createdBy: place!.createdById,
-    };
-  });
-
-  return Response.json({ place: updated });
+    return NextResponse.json(
+      { error: "Failed to update place" },
+      { status: 500 }
+    );
+  }
 }

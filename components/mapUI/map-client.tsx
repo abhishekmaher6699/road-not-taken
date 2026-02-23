@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import MapView from "./map-view";
 import ModeToggle from "./navbar/mode-toggle";
+import MapToggle from "./map-comps/map-style-toggle";
 import { MapSearch } from "./navbar/search-bar";
-import AddLocSidebar from "./sidebar-ui/pins/form-sidebar";
+import FormSidebar from "./sidebar-ui/pins/form-sidebar";
 import DetailsSidebar from "./sidebar-ui/details/details-sidebar";
-import { MapClientProps, Mode, LatLng, PlaceDetails, PlacePreview, ActiveSidebar, FullPlace } from "@/lib/types";
+import { MapClientProps, Mode, LatLng, PlaceDetails, PlacePreview, ActiveSidebar, FullPlace, BaseMap } from "@/lib/types";
 
 
 
@@ -23,6 +24,10 @@ const MapClient = ({ session }: MapClientProps) => {
   const [selectedPlace, setSelectedPlace] = useState<PlacePreview | null>(null);
 
   const [activeSidebar, setActiveSidebar] = useState<ActiveSidebar>(null);
+
+  const [basemap, setBasemap] = useState<BaseMap>("imagery");
+
+
 
   const fullPlace: FullPlace | null =
     selectedPlace && placeDetails
@@ -83,8 +88,6 @@ const MapClient = ({ session }: MapClientProps) => {
   };
 
 
-  
-
   return (
     <div className="relative h-screen w-full overflow-hidden">
       <MapView
@@ -93,6 +96,7 @@ const MapClient = ({ session }: MapClientProps) => {
         pendingPin={pendingPin}
         places={places}
         selectedPlace={selectedPlace}
+        basemap = {basemap}
         onMapClick={setPendingPin}
         onConfirmPin={() => {
           setPreviewPin(pendingPin);
@@ -108,7 +112,9 @@ const MapClient = ({ session }: MapClientProps) => {
         }}
       />
 
-      <AddLocSidebar
+      <MapToggle setBasemap = {setBasemap} basemap={basemap}/>
+
+      <FormSidebar
         previewPin={
           activeSidebar === "edit" && selectedPlace
             ? { lat: selectedPlace.latitude, lng: selectedPlace.longitude }
